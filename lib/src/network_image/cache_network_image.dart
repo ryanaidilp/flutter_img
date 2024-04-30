@@ -190,19 +190,25 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
   }
 
   Widget _buildImage() {
+    Widget child = const SizedBox.shrink();
     if (_isLoading) {
-      return _buildPlaceholderWidget();
+      child = _buildPlaceholderWidget();
+    } else if (_isError) {
+      child = _buildErrorWidget();
     }
-
-    if (_isError) return _buildErrorWidget();
 
     if (_isFromCache) {
-      return _returnImage();
+      child = _returnImage();
+    } else {
+      child = FadeTransition(
+        opacity: _animation,
+        child: _returnImage(),
+      );
     }
 
-    return FadeTransition(
-      opacity: _animation,
-      child: _returnImage(),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: child,
     );
   }
 
