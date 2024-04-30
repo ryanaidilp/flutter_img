@@ -110,6 +110,7 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
   bool _isLoading = false;
   bool _isError = false;
   bool isPlaceholderLoaded = false;
+  bool _isFromCache = false;
   File? _imageFile;
   late String _cacheKey;
 
@@ -126,7 +127,7 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
       vsync: this,
       duration: widget.fadeDuration,
     );
-    _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
+    _animation = Tween<double>(begin: 0, end: 1).animate(_controller);
     _loadImage();
   }
 
@@ -136,14 +137,27 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
 
       var file = (await _cacheManager.getFileFromMemory(_cacheKey))?.file;
 
-      file ??= await _cacheManager.getSingleFile(widget.src, key: _cacheKey);
+      // Check if the file was retrieved from cache
+      if (file != null) {
+        _isFromCache = true;
+      } else {
+        // If not found in cache, download the file
+        file ??= await _cacheManager.getSingleFile(widget.src, key: _cacheKey);
+        _isFromCache = false;
+      }
 
       _imageFile = file;
       _isLoading = false;
 
       _setState();
 
-      await _controller.forward();
+      // Conditionally animate based on whether the image was just downloaded
+      if (!_isFromCache) {
+        await _controller.forward();
+      } else {
+        _controller.value =
+            1.0; // Instantly set the animation to completed state
+      }
     } catch (e) {
       log('CachedNetworkSVGImage: $e');
 
@@ -187,6 +201,11 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
     }
 
     if (_isError) return _buildErrorWidget();
+
+    if (_isFromCache) {
+      return _returnImage();
+    }
+
     return FadeTransition(
       opacity: _animation,
       child: _returnImage(),
