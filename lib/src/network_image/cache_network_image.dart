@@ -133,15 +133,19 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
 
   Future<void> _loadImage() async {
     try {
-      _setToLoadingAfter15MsIfNeeded();
-
       var file = (await _cacheManager.getFileFromMemory(_cacheKey))?.file;
 
       // Check if the file was retrieved from cache
       if (file != null) {
         _isFromCache = true;
+        _isError = false;
       } else {
         // If not found in cache, download the file
+        if (!_isLoading && _imageFile == null && !_isError) {
+          _isLoading = true;
+          _isError = false;
+          _setState();
+        }
         file ??= await _cacheManager.getSingleFile(widget.src, key: _cacheKey);
         _isFromCache = false;
       }
@@ -167,16 +171,6 @@ class _NetworkImageHandlerState extends State<NetworkImageHandler>
       _setState();
     }
   }
-
-  void _setToLoadingAfter15MsIfNeeded() => Future.delayed(
-        const Duration(milliseconds: 15),
-        () {
-          if (!_isLoading && _imageFile == null && !_isError) {
-            _isLoading = true;
-            _setState();
-          }
-        },
-      );
 
   void _setState() => mounted ? setState(() {}) : null;
 
